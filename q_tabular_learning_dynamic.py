@@ -2,7 +2,7 @@ import os
 import random
 import pickle
 import numpy as np
-from env.dynamic_env import DynamicTaxiEnv
+from environment.dynamic_env import DynamicTaxiEnv
 
 # ---------------------------
 # Reward Shaping Strategy

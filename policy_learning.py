@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import matplotlib.pyplot as plt
 
-from env.dynamic_env import DynamicTaxiEnv  # Adjust path as needed
+from environment.dynamic_env import DynamicTaxiEnv  # Adjust path as needed
 
 # ---------------------------
 # Policy Network Definition
