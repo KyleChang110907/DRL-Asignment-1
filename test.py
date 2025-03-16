@@ -3,7 +3,7 @@ import pickle
 import random
 import time
 import numpy as np
-from env.dynamic_env import DynamicTaxiEnv  # adjust import as needed
+from environment.dynamic_env import DynamicTaxiEnv  # adjust import as needed
 
 def run_agent(q_table_file, env_config, render=False):
     """

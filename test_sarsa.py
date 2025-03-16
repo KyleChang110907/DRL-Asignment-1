@@ -3,9 +3,10 @@ import random
 import pickle
 import numpy as np
 import time
-from env.dynamic_env import DynamicTaxiEnv
+from environment.dynamic_env import DynamicTaxiEnv
 # Adjust the import below so that get_state_self_defined is available.
-from SARSA_dynamic import get_state_self_defined 
+from self_defined_state import get_state_self_defined 
+
 def get_action(obs):
     """
     Given an observation (obs), convert it into the new state using get_state_self_defined,
