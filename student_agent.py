@@ -3,6 +3,8 @@ import numpy as np
 import pickle
 import random
 import gym
+import torch
+from DQN import DQN
 
 # def get_action(obs):
     
@@ -39,5 +41,56 @@ def get_action(obs):
     # Check if the observation exists in the Q-table
     if obs in q_table:
         return int(np.argmax(q_table[obs]))
+    else:
+        return random.choice(range(6))
+
+
+def get_action(obs):
+    """
+    Given an observation (state vector), load the trained DQN model from file
+    and return the action with the highest Q-value.
+    If any error occurs, falls back to a random action.
+    
+    Assumes:
+      - obs is a tuple or list of length 10 (new state representation)
+      - The model is saved at "./results_dynamic/dqn_policy_net.pt"
+    """
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    try:
+        model = DQN(input_dim=10, output_dim=6).to(device)
+        model.load_state_dict(torch.load("./results_dynamic/dqn_policy_net.pt", map_location=device))
+        model.eval()
+    except Exception as e:
+        print("Error loading DQN model:", e)
+        return random.choice(range(6))
+    
+    with torch.no_grad():
+        state_tensor = torch.tensor(obs, dtype=torch.float32, device=device).unsqueeze(0)
+        q_vals = model(state_tensor)
+        action = int(torch.argmax(q_vals, dim=1).item())
+    return action
+
+from SARSA_dynamic import get_state_self_defined  # adjust the import to where your function is defined
+
+def get_action(obs):
+    """
+    Given an observation (obs), convert it to the new state using get_state_self_defined,
+    then load the Q-table from file and return the action with the highest Q-value.
+    If the state is not found in the Q-table, return a random action.
+    """
+    # Convert the observation into the new state representation.
+    new_state, _ = get_state_self_defined(obs)
+    
+    # Load the trained Q-table.
+    try:
+        with open("./results_dynamic/q_table_sarsa.pkl", "rb") as f:
+            q_table = pickle.load(f)
+    except FileNotFoundError:
+        return random.choice(range(6))
+    
+    # If the new state exists in the Q-table, select the action with the highest Q-value.
+    if new_state in q_table:
+        return int(np.argmax(q_table[new_state]))
+    
     else:
         return random.choice(range(6))
