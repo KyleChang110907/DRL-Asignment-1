@@ -8,6 +8,7 @@ last_action = -1
 Done_or_not = False
 Fuel = 0
 
+MAX_FUEL = 5000
 
 # ---------------------------
 # New State Conversion Function for Training

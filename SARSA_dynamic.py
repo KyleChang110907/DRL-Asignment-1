@@ -3,9 +3,8 @@ import random
 import pickle
 import numpy as np
 from env.dynamic_env import DynamicTaxiEnv
-from self_defined_state import get_state_self_defined
+from self_defined_state import get_state_self_defined, MAX_FUEL
 
-MAX_FUEL = 5000
 NUM_EPISODES = 150000
 
 # ---------------------------
