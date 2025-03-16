@@ -4,7 +4,7 @@ import pickle
 import random
 import gym
 import torch
-from DQN import DQN
+from self_defined_state import get_state_self_defined  
 
 # def get_action(obs):
     
@@ -44,7 +44,7 @@ def get_action(obs):
     else:
         return random.choice(range(6))
 
-
+# DQN
 def get_action(obs):
     """
     Given an observation (state vector), load the trained DQN model from file
@@ -70,8 +70,7 @@ def get_action(obs):
         action = int(torch.argmax(q_vals, dim=1).item())
     return action
 
-from SARSA_dynamic import get_state_self_defined  # adjust the import to where your function is defined
-
+# SARSA
 def get_action(obs):
     """
     Given an observation (obs), convert it to the new state using get_state_self_defined,
