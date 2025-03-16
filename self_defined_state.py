@@ -74,7 +74,7 @@ def get_state_self_defined(obs):
     # print("Been_to_Stations: ", Been_to_Stations)
     # print("Done_or_not: ", Done_or_not)
     # print("last_action: ", last_action)
-    # print("Fuel: ", Fuel)
+    # # print("Fuel: ", Fuel)
 
     # print(f'Current Taxi Position: ({taxi_r}, {taxi_c})')
     # print("passenger_look", passenger_look)
@@ -153,13 +153,11 @@ def get_state_self_defined(obs):
     if (taxi_r, taxi_c) in stations:
         Been_to_Stations[stations.index((taxi_r, taxi_c))] = True
         # print("Been to station: ", (taxi_r, taxi_c))
-        
     
     # Check for correct dropoff: if taxi is at Destination_Location, passenger is on taxi, and last action was dropoff.
     if Destination_Location == [taxi_r, taxi_c] and Passenger_on_Taxi and last_action == 5:
         Done_or_not = True
         # print("Passenger dropped off correctly. Resetting globals.")
-
 
     # If Fuel exceeds MAX_FUEL, mark done.
     Fuel += 1

@@ -3,9 +3,10 @@ import random
 import pickle
 import numpy as np
 from environment.dynamic_env import DynamicTaxiEnv
-from self_defined_state import get_state_self_defined, MAX_FUEL
+from self_defined_state import get_state_self_defined, MAX_FUEL, last_action, Fuel
+import self_defined_state
 
-NUM_EPISODES = 150000
+NUM_EPISODES = 1000
 
 # ---------------------------
 # Potential Function for Reward Shaping
@@ -72,8 +73,8 @@ def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99,
         
         while not done:
             step+=1
-            # print(f'=====================Episode: {episode}================')
-            # print(f'=====================Step: {step}================')
+            print(f'=====================Episode: {episode}================')
+            print(f'=====================Step: {step}================')
             # print("last_action: ", last_action)
             next_obs, reward, done, _ = env.step(action)
             next_state, next_other_state = get_state_self_defined(next_obs)
@@ -120,7 +121,10 @@ def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99,
             other_state = next_other_state
             action = next_action
             
-            last_action = action
+            # last_action = action
+            self_defined_state.last_action = action
+            # defined last_action to global
+
             # print("action: ", action)
             total_reward += reward
 
@@ -128,17 +132,18 @@ def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99,
             #     if reward == 49.9:
             #         print("==============Dropped off passenger correctly==========")
 
-            global Fuel
+            # global Fuel
+            # print("Fuel: ", Fuel)
             # print("Fuel: ", Fuel)
             # print("Step: ", step)
-            if Fuel != step:
-                if step == MAX_FUEL+1:
-                    continue
-                else:
-                    print("Fuel not equal to step")
-                    print(f"Fuel: {Fuel}, Step: {step}")
+            # if Fuel != step:
+            #     if step == MAX_FUEL+1:
+            #         continue
+            #     else:
+            #         print("Fuel not equal to step")
+            #         print(f"Fuel: {Fuel}, Step: {step}")
                 
-                raise ValueError("Fuel not equal to step")
+            #     raise ValueError("Fuel not equal to step")
 
         rewards_history.append(total_reward)
         epsilon = max(min_epsilon, epsilon * epsilon_decay)
@@ -156,7 +161,7 @@ if __name__ == "__main__":
     env = DynamicTaxiEnv(grid_size_min=5, grid_size_max=10, fuel_limit=MAX_FUEL, obstacle_prob=0.1)
     q_table, rewards_history = train_dynamic_taxi_sarsa(env, num_episodes=NUM_EPISODES)
     os.makedirs("./results_dynamic", exist_ok=True)
-    with open("./results_dynamic/q_table_sarsa.pkl", "wb") as f:
+    with open("./results_dynamic/q_table_sarsa2.pkl", "wb") as f:
         pickle.dump(q_table, f)
     np.save("./results_dynamic/rewards_history_sarsa.npy", rewards_history)
 
@@ -169,5 +174,5 @@ if __name__ == "__main__":
     plt.title("SARSA Reward History")
     plt.legend()
     plt.grid(True)
-    plt.savefig("./results_dynamic/q_table_sarsa_reward_history.png")
+    plt.savefig("./results_dynamic/q_table_sarsa_reward_history2.png")
     plt.close()
