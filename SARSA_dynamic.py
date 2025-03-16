@@ -6,7 +6,7 @@ from environment.dynamic_env import DynamicTaxiEnv
 from self_defined_state import get_state_self_defined, MAX_FUEL, last_action, Fuel
 import self_defined_state
 
-NUM_EPISODES = 170000
+NUM_EPISODES = 50000
 
 # ---------------------------
 # Potential Function for Reward Shaping
@@ -33,7 +33,7 @@ def potential(state, env):
 # SARSA Training with Reward Shaping Using New State Representation
 # ---------------------------
 def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99, 
-                             epsilon=1.0, epsilon_decay=0.99999, min_epsilon=0.1):
+                             epsilon=1.0, epsilon_decay=0.99995, min_epsilon=0.1):
     """
     Train a SARSA agent on the dynamic grid-world taxi with random grid sizes.
     Uses potential-based reward shaping.
@@ -52,7 +52,7 @@ def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99,
 
     for episode in range(num_episodes):
         # print(f'=====================Episode: {episode}================')
-        # print(f'=====================Step: 0================')
+        # print(f'=====================Step: 1================')
         global last_action
         # print("last_action: ", last_action)
         obs, _ = env.reset()  # Get original state from the environment.
@@ -87,13 +87,13 @@ def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99,
             if state[2] == 0 and next_state[2] == 1:
                 shaping = 10
                 # print("Picked up passenger! Reward:", reward)
-            # elif action==5 and other_state[2]==0 and other_state[3]==0:
-            #     shaping = 10000
-            #     # print("Dropped off passenger! Reward:", reward)
-            # elif action == 5 and (next_state[2] != 0 or next_state[3] != 0):
-            #     # print("Dropped off passenger at wrong location! Reward:", reward)
-            #     shaping = -10000
-            
+            elif action==5 and other_state[2]==0 and other_state[3]==0 and state[2] == 1:
+                shaping = 200
+                # print("********Dropped off passenger correctly! Reward:", reward)
+            elif action == 5 :
+                # print("Dropped off passenger at wrong location! Reward:", reward)
+                shaping = -200
+
             # if not picked and do dropoff
             # if state[2] == 0 and action == 5:
             #     shaping = -2000
@@ -131,8 +131,8 @@ def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99,
             # if done:
             #     if reward == 49.9:
             #         print("==============Dropped off passenger correctly==========")
-
-            # global Fuel
+            # Fuel = self_defined_state.Fuel
+            # self_defined_state.Fuel +=1
             # print("Fuel: ", Fuel)
             # print("Fuel: ", Fuel)
             # print("Step: ", step)
@@ -158,7 +158,7 @@ def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99,
 # ---------------------------
 if __name__ == "__main__":
     # Create environment with random grid size per episode.
-    env = DynamicTaxiEnv(grid_size_min=5, grid_size_max=10, fuel_limit=MAX_FUEL, obstacle_prob=0.1)
+    env = DynamicTaxiEnv(grid_size_min=5, grid_size_max=10, fuel_limit=MAX_FUEL, obstacle_prob=0.15)
     q_table, rewards_history = train_dynamic_taxi_sarsa(env, num_episodes=NUM_EPISODES)
     os.makedirs("./results_dynamic", exist_ok=True)
     with open("./results_dynamic/q_table_sarsa2.pkl", "wb") as f:

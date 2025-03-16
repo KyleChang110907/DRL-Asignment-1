@@ -1,3 +1,4 @@
+import random
 # globally storage
 # ---------------------------
 Destination_Location = [-1, -1]
@@ -140,14 +141,18 @@ def get_state_self_defined(obs):
         going_row_diff = taxi_r - Destination_Location[0]
         going_col_diff = taxi_c - Destination_Location[1]
     # Goes to the closedt station that has not been visited yet.
-    elif Been_to_Stations.count(False) > 0:
+    elif Been_to_Stations.count(False) > 0 or (Destination_Location == [-1,-1] and Passenger_on_Taxi):
         indices = [i for i, x in enumerate(Been_to_Stations) if not x]
         distances = [abs(taxi_r - stations[i][0]) + abs(taxi_c - stations[i][1]) for i in indices]
         min_index = indices[distances.index(min(distances))]
         going_row_diff = taxi_r - stations[min_index][0]
         going_col_diff = taxi_c - stations[min_index][1]
     else:
-        raise ValueError("No station to go to.")
+        print("No station to go to.")
+        # randomly pick one station to go to
+        station = random.choice(stations)
+        going_row_diff = taxi_r - station[0]
+        going_col_diff = taxi_c - station[1]
     
     # If taxi is at one of the stations been to that station.
     if (taxi_r, taxi_c) in stations:

@@ -114,7 +114,7 @@ class DynamicTaxiEnv():
                     else:
                         reward -=10
                     self.passenger_picked_up = False
-                    # self.passenger_loc = self.taxi_pos
+                    self.passenger_loc = self.taxi_pos
                 else:
                     reward -=10
                     
