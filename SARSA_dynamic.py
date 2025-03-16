@@ -6,7 +6,7 @@ from environment.dynamic_env import DynamicTaxiEnv
 from self_defined_state import get_state_self_defined, MAX_FUEL, last_action, Fuel
 import self_defined_state
 
-NUM_EPISODES = 1000
+NUM_EPISODES = 170000
 
 # ---------------------------
 # Potential Function for Reward Shaping
@@ -73,8 +73,8 @@ def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99,
         
         while not done:
             step+=1
-            print(f'=====================Episode: {episode}================')
-            print(f'=====================Step: {step}================')
+            # print(f'=====================Episode: {episode}================')
+            # print(f'=====================Step: {step}================')
             # print("last_action: ", last_action)
             next_obs, reward, done, _ = env.step(action)
             next_state, next_other_state = get_state_self_defined(next_obs)
@@ -85,7 +85,7 @@ def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99,
             # Special shaping modifications.
             # if state[2] == 0 and next_state[2] == 1 and action == 4:
             if state[2] == 0 and next_state[2] == 1:
-                shaping = 25
+                shaping = 10
                 # print("Picked up passenger! Reward:", reward)
             # elif action==5 and other_state[2]==0 and other_state[3]==0:
             #     shaping = 10000
@@ -99,8 +99,8 @@ def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99,
             #     shaping = -2000
                 # print("Dropped off passenger without picking Passenger! Reward:", reward)
             # if picking at the wrong location
-            if state[2] == 0 and other_state[0] != 0 and other_state[1] != 0 and action == 4:
-                shaping = -15
+            # if state[2] == 0 and other_state[0] != 0 and other_state[1] != 0 and action == 4:
+            #     shaping = -25
                 # print("Picked up passenger at wrong location! Reward:", reward)
             
             phi_old = phi_new
