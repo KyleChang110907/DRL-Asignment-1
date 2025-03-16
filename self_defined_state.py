@@ -133,14 +133,15 @@ def get_state_self_defined(obs):
     picked = int(Passenger_on_Taxi)
 
     # 4. Better going station
-    # Taxi should go to the passenger station if the passenger is not picked up.
+    # Taxi should go to the passenger station if the passenger is not picked up and the passenegr location is known.
     if Passenger_Location != [-1,-1] and not Passenger_on_Taxi:
         going_row_diff = taxi_r - Passenger_Location[0]
         going_col_diff = taxi_c - Passenger_Location[1]
+    # Taxi should go to the destination station if the passenger is picked up and the destination location is known.
     elif Destination_Location != [-1,-1] and Passenger_on_Taxi:
         going_row_diff = taxi_r - Destination_Location[0]
         going_col_diff = taxi_c - Destination_Location[1]
-    # Goes to the closedt station that has not been visited yet.
+    # Goes to the closedt station that has not been visited yet if the destination or passenegr location hsan't been found.
     elif Been_to_Stations.count(False) > 0 or (Destination_Location == [-1,-1] and Passenger_on_Taxi):
         indices = [i for i, x in enumerate(Been_to_Stations) if not x]
         distances = [abs(taxi_r - stations[i][0]) + abs(taxi_c - stations[i][1]) for i in indices]

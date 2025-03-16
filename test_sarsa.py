@@ -6,6 +6,7 @@ import time
 from environment.dynamic_env import DynamicTaxiEnv
 # Adjust the import below so that get_state_self_defined is available.
 from self_defined_state import get_state_self_defined 
+import self_defined_state
 
 def get_action(obs):
     """
@@ -17,16 +18,22 @@ def get_action(obs):
     new_state, _ = get_state_self_defined(obs)
     
     try:
-        with open("./results_dynamic/q_table_sarsa.pkl", "rb") as f:
+        with open("./results_dynamic/q_table_sarsa3.pkl", "rb") as f:
             q_table = pickle.load(f)
     except FileNotFoundError:
-        return random.choice(range(6))
+        action = random.choice(range(6))
+        
     
     if new_state in q_table:
-        print("State found in Q-table")
-        return int(np.argmax(q_table[new_state]))
+        # print("State found in Q-table")
+        action = int(np.argmax(q_table[new_state]))
+        
     else:
-        return random.choice(range(6))
+        print("State not found in Q-table")
+        action = random.choice(range(6))
+    self_defined_state.last_action = action
+    return action
+
 
 def run_episode(env, render=False):
     """
@@ -52,15 +59,15 @@ def main():
     # Environment configuration parameters.
     env_config = {
         "grid_size_min": 5,
-        "grid_size_max": 10,
-        "fuel_limit": 5000,
+        "grid_size_max": 6,
+        "fuel_limit": 100,
         "obstacle_prob": 0.1
     }
     
     # Create the dynamic taxi environment.
     env = DynamicTaxiEnv(**env_config)
     
-    num_episodes = 1
+    num_episodes = 10
     rewards = []
     steps = []
     

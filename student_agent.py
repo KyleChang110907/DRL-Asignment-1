@@ -83,7 +83,7 @@ def get_action(obs):
     
     # Load the trained Q-table.
     try:
-        with open("./results_dynamic/q_table_sarsa2.pkl", "rb") as f:
+        with open("./results_dynamic/q_table_sarsa3.pkl", "rb") as f:
             q_table = pickle.load(f)
     except FileNotFoundError:
         action = random.choice(range(6))
