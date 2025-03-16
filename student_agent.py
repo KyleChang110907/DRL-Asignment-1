@@ -190,6 +190,7 @@ def reset_global_storage():
     Fuel = 0
     Done_or_not = False
 
+
 # def get_action(obs):
     
 #     # TODO: Train your own agent
@@ -208,7 +209,7 @@ def reset_global_storage():
 #         return int(np.argmax(q_table[state_features]))
 #     else:
 #         return random.choice(range(6))
-#     # You can submit this random agent to evaluate the performance of a purely random strategy.
+# #     # You can submit this random agent to evaluate the performance of a purely random strategy.
 
 # def get_action(obs):
 #     """
@@ -255,25 +256,28 @@ def reset_global_storage():
 #     return action
 
 # SARSA
+# def get_action(obs):
+#     """
+#     Given an observation (obs), convert it to the new state using get_state_self_defined,
+#     then load the Q-table from file and return the action with the highest Q-value.
+#     If the state is not found in the Q-table, return a random action.
+#     """
+#     # Convert the observation into the new state representation.
+#     new_state, _ = get_state_self_defined(obs)
+    
+#     # Load the trained Q-table.
+#     try:
+#         with open("./results_dynamic/q_table_sarsa.pkl", "rb") as f:
+#             q_table = pickle.load(f)
+#     except FileNotFoundError:
+#         return random.choice(range(6))
+    
+#     # If the new state exists in the Q-table, select the action with the highest Q-value.
+#     if new_state in q_table:
+#         return int(np.argmax(q_table[new_state]))
+    
+#     else:
+#         return random.choice(range(6))
+
 def get_action(obs):
-    """
-    Given an observation (obs), convert it to the new state using get_state_self_defined,
-    then load the Q-table from file and return the action with the highest Q-value.
-    If the state is not found in the Q-table, return a random action.
-    """
-    # Convert the observation into the new state representation.
-    new_state, _ = get_state_self_defined(obs)
-    
-    # Load the trained Q-table.
-    try:
-        with open("./results_dynamic/q_table_sarsa.pkl", "rb") as f:
-            q_table = pickle.load(f)
-    except FileNotFoundError:
-        return random.choice(range(6))
-    
-    # If the new state exists in the Q-table, select the action with the highest Q-value.
-    if new_state in q_table:
-        return int(np.argmax(q_table[new_state]))
-    
-    else:
-        return random.choice(range(6))
+    return random.choice(range(6))
