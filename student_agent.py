@@ -72,33 +72,62 @@ import self_defined_state
 #     return action
 
 # SARSA
+# def get_action(obs):
+#     """
+#     Given an observation (obs), convert it to the new state using get_state_self_defined,
+#     then load the Q-table from file and return the action with the highest Q-value.
+#     If the state is not found in the Q-table, return a random action.
+#     """
+#     # Convert the observation into the new state representation.
+#     new_state, _ = get_state_self_defined(obs)
+    
+#     # Load the trained Q-table.
+#     try:
+#         with open("./results_dynamic/q_table_sarsa3.pkl", "rb") as f:
+#             q_table = pickle.load(f)
+#     except FileNotFoundError:
+#         action = random.choice(range(6))
+        
+    
+#     # If the new state exists in the Q-table, select the action with the highest Q-value.
+#     if new_state in q_table:
+#         action = int(np.argmax(q_table[new_state]))
+        
+    
+#     else:
+#         action = random.choice(range(6))
+    
+#     self_defined_state.last_action = action
+
+#     return action
+
+from self_defined_state import global_state_recorder  # assume you save the above class in state_recorder.py
+
 def get_action(obs):
     """
-    Given an observation (obs), convert it to the new state using get_state_self_defined,
+    Given an observation, convert it to the new state using the global StateRecorder,
     then load the Q-table from file and return the action with the highest Q-value.
-    If the state is not found in the Q-table, return a random action.
+    If the new state is not found in the Q-table, return a random action.
     """
-    # Convert the observation into the new state representation.
-    new_state, _ = get_state_self_defined(obs)
+    # Get the new state representation.
+    new_state = global_state_recorder.get_state(obs)
     
-    # Load the trained Q-table.
     try:
-        with open("./results_dynamic/q_table_sarsa3.pkl", "rb") as f:
+        with open("./results_dynamic/q_table_sarsa4.pkl", "rb") as f:
             q_table = pickle.load(f)
-    except FileNotFoundError:
-        action = random.choice(range(6))
-        
+    except Exception as e:
+        print("Error loading Q-table:", e)
+        return random.choice(range(6))
     
-    # If the new state exists in the Q-table, select the action with the highest Q-value.
     if new_state in q_table:
         action = int(np.argmax(q_table[new_state]))
-        
-    
     else:
         action = random.choice(range(6))
+        print("Action not found in Q-table. Choosing random action.")
     
-    self_defined_state.last_action = action
-
+    # Update the recorder with the current observation and the chosen action.
+    global_state_recorder.update(obs, action)
+    
     return action
 
 # def get_action(obs):

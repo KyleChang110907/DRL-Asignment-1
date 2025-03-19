@@ -18,7 +18,7 @@ def get_action(obs):
     new_state, _ = get_state_self_defined(obs)
     
     try:
-        with open("./results_dynamic/q_table_sarsa3.pkl", "rb") as f:
+        with open("./results_dynamic/q_table_sarsa4.pkl", "rb") as f:
             q_table = pickle.load(f)
     except FileNotFoundError:
         action = random.choice(range(6))
@@ -53,6 +53,9 @@ def run_episode(env, render=False):
         if render:
             print(env.render())
             time.sleep(0.2)
+
+        if done:
+            self_defined_state.done=True
     return total_reward, step_count
 
 def main():
@@ -60,7 +63,7 @@ def main():
     env_config = {
         "grid_size_min": 5,
         "grid_size_max": 6,
-        "fuel_limit": 100,
+        "fuel_limit": self_defined_state.MAX_FUEL,
         "obstacle_prob": 0.1
     }
     
