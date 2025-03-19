@@ -110,7 +110,7 @@ def get_action(obs):
     If the new state is not found in the Q-table, return a random action.
     """
     # Get the new state representation.
-    new_state = global_state_recorder.get_state(obs)
+    new_state, new_other_state = global_state_recorder.get_state(obs)
     
     try:
         with open("./results_dynamic/q_table_sarsa4.pkl", "rb") as f:

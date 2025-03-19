@@ -5,7 +5,7 @@ import numpy as np
 from environment.dynamic_env import DynamicTaxiEnv
 from self_defined_state import StateRecorder  # import the class from your file
 
-NUM_EPISODES = 10000 # 250000
+NUM_EPISODES = 250000
 MAX_FUEL = 5000
 
 def potential(state, env):
