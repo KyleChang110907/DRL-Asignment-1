@@ -101,9 +101,10 @@ import self_defined_state
 
 #     return action
 
+# SARSA2 
 from self_defined_state import global_state_recorder  # assume you save the above class in state_recorder.py
 
-def get_action(obs):
+def get_action_sarsa(obs):
     """
     Given an observation, convert it to the new state using the global StateRecorder,
     then load the Q-table from file and return the action with the highest Q-value.
@@ -130,5 +131,80 @@ def get_action(obs):
     
     return action
 
+# A3C
+# Load the stored A3C network.
+# This global network is loaded only once.
+from training.A3C_LargeState import A3CNet
+import torch
+import torch.nn.functional as F
+from self_defined_state import global_state_recorder_large
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+global_net = A3CNet(input_dim=18, hidden_dim=128, num_actions=6).to(device)
+global_net.load_state_dict(torch.load("./results_dynamic/a3c_policy_net.pt", map_location=device))
+global_net.eval()
+
+def get_action(obs):
+    """
+    Given an observation (obs), convert it into the new state using the global StateRecorder,
+    then use the stored A3C network to compute the policy distribution, sample an action,
+    update the recorder, and return the action.
+    """
+    # Convert the raw observation into your new state representation.
+    # global_state_recorder.get_state returns a 10-tuple.
+    new_state= global_state_recorder_large.get_state(obs)
+    
+    # Convert state to tensor.
+    state_tensor = torch.tensor(new_state, dtype=torch.float32, device=device).unsqueeze(0)
+    
+    # Pass through the global network.
+    with torch.no_grad():
+        policy_logits, _ = global_net(state_tensor)
+    # Compute action probabilities and sample.
+    probs = F.softmax(policy_logits, dim=1)
+    m = torch.distributions.Categorical(probs)
+    action = int(m.sample().item())
+    
+    # Update the state recorder with the current observation and chosen action.
+    global_state_recorder_large.update(obs, action)
+    
+    return action
 # def get_action(obs):
 #     return random.choice(range(6))
+
+
+# DQN Large State
+import torch
+import torch.nn.functional as F
+from self_defined_state import global_state_recorder_large  # global instance of your state recorder
+from training.DQN_LargeState import QNet  # assuming you have defined QNet as your DQN network
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Load the trained Q-network.
+global_net = QNet(input_dim=17, hidden_dim=128, num_actions=6).to(device)
+global_net.load_state_dict(torch.load("./results_dynamic/dqn_policy_net.pt", map_location=device))
+global_net.eval()
+
+def get_action(obs):
+    """
+    Given an observation, convert it into your state representation via the global state recorder,
+    then use the loaded Q-network to compute Q-values and select the best action (greedy).
+    The state recorder is updated with the chosen action.
+    """
+    # Get the state representation (an 18-dimensional vector) from the state recorder.
+    state = global_state_recorder_large.get_state(obs)
+    
+    # Convert the state to a tensor.
+    state_tensor = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
+    
+    # Pass through the Q-network to obtain Q-values.
+    with torch.no_grad():
+        q_values = global_net(state_tensor)
+    
+    # Choose the action with the highest Q-value.
+    action = int(torch.argmax(q_values, dim=1).item())
+    
+    # Update the state recorder with the observation and chosen action.
+    global_state_recorder_large.update(obs, action)
+    
+    return action

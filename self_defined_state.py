@@ -348,7 +348,7 @@ class StateRecorder:
         obs_w = obs[13]
 
         state = (going_row_diff, going_col_diff, picked, last_action_norm, visited_code_norm, fuel_norm, obs_n, obs_s, obs_e, obs_w)
-        state = (going_row_diff, going_col_diff, picked, obs_n, obs_s, obs_e, obs_w)
+        # state = (going_row_diff, going_col_diff, picked, obs_n, obs_s, obs_e, obs_w)
         # other state is a 4-tuple: (pass_row_diff, pass_col_diff, dest_row_diff, dest_col_diff)
         if self.passenger_location != [-1, -1]:
             pass_row_diff = taxi_r - self.passenger_location[0]
@@ -364,6 +364,181 @@ class StateRecorder:
         
         other_state = (pass_row_diff, pass_col_diff, dest_row_diff, dest_col_diff)
         return state, other_state
+    
+    def normalize_state(self, state):
+        """
+        Normalize the state values for neural network training.
+        """
+        going_row_diff, going_col_diff, picked, last_action_norm, visited_code_norm, fuel_norm, obs_n, obs_s, obs_e, obs_w = state
+        return (going_row_diff / 10.0, going_col_diff / 10.0, picked, last_action_norm, visited_code_norm, fuel_norm, obs_n, obs_s, obs_e, obs_w)
         
 # Create a global instance of the recorder.
 global_state_recorder = StateRecorder(MAX_FUEL)
+
+
+import random
+
+class StateRecorder_LargeState:
+    def __init__(self, max_fuel):
+        """
+        Initialize the state recorder with a maximum fuel value.
+        """
+        self.max_fuel = max_fuel
+        self.reset()
+
+    def reset(self):
+        """
+        Reset all stored variables for a new episode.
+        """
+        self.destination_location = [-1, -1]  # Destination station location.
+        self.passenger_location = [-1, -1]    # Passenger station location.
+        self.passenger_on_taxi = False        # Whether the passenger is on board.
+        self.been_to_stations = [False, False, False, False]  # Visited flags for the 4 stations.
+        self.last_action = -1                 # Last action taken (-1 means no action yet).
+        self.fuel = 0                         # Step counter used as fuel.
+        self.done = False                     # Terminal flag.
+
+    def update(self, obs, action):
+        """
+        Update stored variables using the current observation (obs) and the action taken.
+        The observation is a 16-tuple:
+          (taxi_row, taxi_col,
+           station0_row, station0_col, station1_row, station1_col,
+           station2_row, station2_col, station3_row, station3_col,
+           obstacle_north, obstacle_south, obstacle_east, obstacle_west,
+           passenger_look, destination_look)
+        """
+        taxi_r, taxi_c = obs[0], obs[1]
+        stations = [(obs[2], obs[3]), (obs[4], obs[5]),
+                    (obs[6], obs[7]), (obs[8], obs[9])]
+        passenger_look = obs[14]
+        destination_look = obs[15]
+
+        # Increment fuel counter.
+        self.fuel += 1
+
+        # Update last action.
+        self.last_action = action
+
+        # Update visited stations and record passenger/destination positions if observed.
+        for i, station in enumerate(stations):
+            if (taxi_r, taxi_c) == station:
+                self.been_to_stations[i] = True
+                if passenger_look == 1 and self.passenger_location == [-1, -1]:
+                    self.passenger_location = [taxi_r, taxi_c]
+                if destination_look == 1 and self.destination_location == [-1, -1]:
+                    self.destination_location = [taxi_r, taxi_c]
+
+        # Update passenger status.
+        if (self.passenger_location != [-1, -1] and 
+            (taxi_r, taxi_c) == tuple(self.passenger_location) and
+            action == 4):  # PICKUP action
+            self.passenger_on_taxi = True
+
+        if self.passenger_on_taxi:
+            # When passenger is onboard, update its location to taxi's current position.
+            self.passenger_location = [taxi_r, taxi_c]
+            if action == 5:  # DROPOFF action
+                if (self.destination_location != [-1, -1] and 
+                    (taxi_r, taxi_c) == tuple(self.destination_location)):
+                    self.done = True
+                    self.reset()
+                    return
+                else:
+                    # Incorrect dropoff resets the passenger flag.
+                    self.passenger_on_taxi = False
+
+        # Check fuel condition.
+        if self.fuel > self.max_fuel:
+            self.done = True
+            self.reset()
+
+    def get_visited_code(self):
+        """
+        Encode the been_to_stations list as a 4-bit integer (0 to 15) and normalize it.
+        """
+        code = (self.been_to_stations[0] * 8 +
+                self.been_to_stations[1] * 4 +
+                self.been_to_stations[2] * 2 +
+                self.been_to_stations[3])
+        return code / 15.0
+
+    def get_state(self, obs):
+        """
+        Generate a state representation based solely on the observation and stored history,
+        without any heuristic guidance for a target location.
+
+        The state vector contains:
+          - Taxi's normalized absolute position (taxi_row/10, taxi_col/10).
+          - Passenger information: a binary flag indicating if the passenger location is known,
+            and the normalized relative differences (taxi - passenger). If unknown, use a sentinel value of 2.0.
+          - Destination information: a binary flag and normalized differences (taxi - destination),
+            with sentinel values if unknown.
+          - Normalized visited stations code.
+          - Normalized last action (action/5.0).
+          - Normalized fuel usage.
+          - Obstacle indicators: obs_n, obs_s, obs_e, obs_w.
+          - Raw passenger_look and destination_look flags.
+        """
+        taxi_r, taxi_c = obs[0], obs[1]
+
+        # Taxi's normalized absolute position.
+        norm_taxi_r = taxi_r / 10.0
+        norm_taxi_c = taxi_c / 10.0
+
+        # Passenger relative information.
+        if self.passenger_location != [-1, -1]:
+            passenger_known = 1.0
+            pass_diff_r = (taxi_r - self.passenger_location[0]) / 10.0
+            pass_diff_c = (taxi_c - self.passenger_location[1]) / 10.0
+        else:
+            passenger_known = 0.0
+            pass_diff_r = 2.0  # Sentinel value outside the normal range [-1,1].
+            pass_diff_c = 2.0
+
+        # Destination relative information.
+        if self.destination_location != [-1, -1]:
+            destination_known = 1.0
+            dest_diff_r = (taxi_r - self.destination_location[0]) / 10.0
+            dest_diff_c = (taxi_c - self.destination_location[1]) / 10.0
+        else:
+            destination_known = 0.0
+            dest_diff_r = 2.0  # Sentinel value.
+            dest_diff_c = 2.0
+
+        # Visited stations encoded as a normalized code.
+        visited_code_norm = self.get_visited_code()
+
+        # Last action normalized (if no action, use 0).
+        last_action_norm = 0.0 if self.last_action == -1 else self.last_action / 5.0
+
+        # Normalized fuel usage.
+        fuel_norm = self.fuel / self.max_fuel
+
+        # Passenger on taxi flag.
+        passenger_on = 1.0 if self.passenger_on_taxi else 0.0
+
+        # Obstacle indicators (indices 10-13 in the observation).
+        obs_n = obs[10]
+        obs_s = obs[11]
+        obs_e = obs[12]
+        obs_w = obs[13]
+
+        # Raw look flags for passenger and destination.
+        passenger_look = obs[14]
+        destination_look = obs[15]
+
+        # Assemble the complete state vector.
+        state = (
+            norm_taxi_r, norm_taxi_c,
+            passenger_known, pass_diff_r, pass_diff_c,
+            destination_known, dest_diff_r, dest_diff_c,
+            passenger_on,
+            visited_code_norm,
+            last_action_norm,
+            obs_n, obs_s, obs_e, obs_w,
+            passenger_look, destination_look
+        )
+        return state
+
+global_state_recorder_large = StateRecorder_LargeState(MAX_FUEL)

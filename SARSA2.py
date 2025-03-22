@@ -5,7 +5,7 @@ import numpy as np
 from environment.dynamic_env import DynamicTaxiEnv
 from self_defined_state import StateRecorder  # import the class from your file
 
-NUM_EPISODES = 250000
+NUM_EPISODES = 10000
 MAX_FUEL = 5000
 
 def potential(state, env):
@@ -31,6 +31,7 @@ def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99,
         return q_table[state]
     
     for episode in range(num_episodes):
+        # print(f"Episode {episode+1}/{num_episodes}")
         obs, _ = env.reset()
         recorder.reset()  # Reset the recorder at the start of the episode.
         state, other_state = recorder.get_state(obs)
@@ -86,7 +87,11 @@ def train_dynamic_taxi_sarsa(env, num_episodes=1000, alpha=0.1, gamma=0.99,
             other_state = next_other_state
             action = next_action
             total_reward += reward
-        
+
+            # print(f'Episode: {episode}, Step: {step}, fuel:{recorder.fuel}, action: {action}, reward: {reward}, shaping: {shaping}, total_reward: {total_reward}')
+            # if step!= recorder.fuel:
+            #     print('*******ERROR: fuel not updated*****')
+
         rewards_history.append(total_reward)
         epsilon = max(min_epsilon, epsilon * epsilon_decay)
         if (episode + 1) % 100 == 0:
