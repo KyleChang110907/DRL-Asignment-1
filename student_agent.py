@@ -177,13 +177,29 @@ def get_action(obs):
 import torch
 import torch.nn.functional as F
 from self_defined_state import global_state_recorder_large  # global instance of your state recorder
-from self_defined_state import global_state_recorder_enhanced  
+from self_defined_state import global_state_recorder_enhanced 
+from self_defined_state import global_state_recorder_Differnces 
 from training.DQN_LargeState import QNet  # assuming you have defined QNet as your DQN network
+
+DQN_MODE = 'Enhanced' # 'LargeState' or 'Enhanced' or 'Differences'
+MODE = 'PUSH' # 'PUSH' or 'TEST'
+
+if DQN_MODE == 'Differences':
+    global_state_recorder = global_state_recorder_Differnces
+    input_dim = 15
+    hidden_dim = 64
+    model_path = "./results_dynamic/dqn_policy_net_3_2.pt"
+elif DQN_MODE == 'Enhanced':
+    global_state_recorder = global_state_recorder_enhanced
+    input_dim = 26
+    hidden_dim = 128
+    model_path = "./results_dynamic/dqn_policy_net_3.pt"
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Load the trained Q-network.
-global_net = QNet(input_dim=26, hidden_dim=128, num_actions=6).to(device)
-global_net.load_state_dict(torch.load("./results_dynamic/dqn_policy_net_3.pt", map_location=device))
+global_net = QNet(input_dim=input_dim, hidden_dim=hidden_dim, num_actions=6).to(device)
+global_net.load_state_dict(torch.load(model_path, map_location=device))
 global_net.eval()
 
 def get_action(obs):
@@ -193,9 +209,10 @@ def get_action(obs):
     The state recorder is updated with the chosen action.
     """
     # Get the state representation (an 18-dimensional vector) from the state recorder.
-    state = global_state_recorder_enhanced.get_state(obs)
+    state = global_state_recorder.get_state(obs)
     
-    print('state:',state)
+    if MODE == 'TEST':
+        print('state:',state)
     # Convert the state to a tensor.
     state_tensor = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
     
@@ -205,8 +222,9 @@ def get_action(obs):
     
     # Choose the action with the highest Q-value.
     action = int(torch.argmax(q_values, dim=1).item())
-    print('action:',action)
+    if MODE == 'TEST':
+        print('action:',action)
     # Update the state recorder with the observation and chosen action.
-    global_state_recorder_enhanced.update(obs, action)
+    global_state_recorder.update(obs, action)
     
     return action

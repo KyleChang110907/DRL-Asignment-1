@@ -13,14 +13,14 @@ from self_defined_state import StateRecorder_Differences  # Your class-based sta
 
 sav_dir = "./results_dynamic/dqn_policy_net_3_2.pt"
 # --- Hyperparameters ---
-NUM_EPISODES = 20000        # Total episodes for training
+NUM_EPISODES = 15000        # Total episodes for training
 MAX_STEPS = 1000              # Maximum steps per episode
 GAMMA = 0.99                  # Discount factor
 LR = 1e-3                   # Learning rate for optimizer
 MAX_FUEL = 5000               # Fuel limit per episode
 EPS_START = 1.0               # Starting value for epsilon (exploration)
 EPS_END = 0.1                 # Minimum epsilon
-EPS_DECAY = 13000*1000           # Decay rate for epsilon (in steps)
+EPS_DECAY = 75000*1000           # Decay rate for epsilon (in steps)
 BATCH_SIZE = 128             # Batch size for training
 REPLAY_BUFFER_SIZE = 20000  # Maximum size of replay buffer
 TARGET_UPDATE_FREQ = 1000   # Steps between target network updates
@@ -118,7 +118,7 @@ def dqn_train():
     
     for ep in range(NUM_EPISODES):
         # Initialize environment and recorder for each episode.
-        env = DynamicTaxiEnv(grid_size_min=5, grid_size_max=10, fuel_limit=MAX_FUEL, obstacle_prob=0.10)
+        env = DynamicTaxiEnv(grid_size_min=5, grid_size_max=10, fuel_limit=MAX_FUEL, obstacle_prob=0.15)
         recorder = StateRecorder_Differences(MAX_FUEL)
         obs, _ = env.reset()
         recorder.reset()
@@ -148,6 +148,10 @@ def dqn_train():
             # Add bonus reward if the pickup (action 4) was successful.
             if action == 4 and (not was_passenger_on) and now_passenger_on:
                 bonus = 10
+
+            if action == 5 and reward== -10.1:
+                # print('wrong dropp off ')
+                bonus = -40
 
             if reward == -5.1:
                 # print('crush into obstacle')
@@ -219,7 +223,7 @@ def evaluate_dqn(policy_net, device, num_episodes=10):
     policy_net.eval()
     rewards = []
     for _ in range(num_episodes):
-        env = DynamicTaxiEnv(grid_size_min=5, grid_size_max=10, fuel_limit=MAX_FUEL, obstacle_prob=0.10)
+        env = DynamicTaxiEnv(grid_size_min=5, grid_size_max=10, fuel_limit=MAX_FUEL, obstacle_prob=0.15)
         recorder = StateRecorder_Differences(MAX_FUEL)
         obs, _ = env.reset()
         recorder.reset()
@@ -241,7 +245,7 @@ def evaluate_dqn(policy_net, device, num_episodes=10):
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    policy_net, rewards, test_rewards = dqn_train()
+    policy_net, rewards, test_rewards, losses = dqn_train()
     os.makedirs("./results_dynamic", exist_ok=True)
     torch.save(policy_net.state_dict(), sav_dir )
     np.save("./results_dynamic/dqn_rewards_history_3_2.npy", np.array(rewards))
@@ -261,4 +265,12 @@ if __name__ == "__main__":
     plt.ylabel("Total Reward")
     plt.title("DQN Test Reward History")
     plt.savefig("./results_dynamic/dqn_test_reward_history_3_2.png")
+    plt.close()
+
+    plt.figure(figsize=(10,6))
+    plt.plot(losses)
+    plt.xlabel("Step")
+    plt.ylabel("Loss")
+    plt.title("DQN Loss History")
+    plt.savefig("./results_dynamic/dqn_loss_history_3_2.png")
     plt.close()
