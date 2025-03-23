@@ -261,7 +261,7 @@ def evaluate_dqn(policy_net, device, num_episodes=10):
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    policy_net, rewards, test_rewards = dqn_train()
+    policy_net, rewards, test_rewards, losses = dqn_train()
     os.makedirs("./results_dynamic", exist_ok=True)
     torch.save(policy_net.state_dict(), sav_dir )
     np.save("./results_dynamic/dqn_rewards_history_3.npy", np.array(rewards))
@@ -281,4 +281,12 @@ if __name__ == "__main__":
     plt.ylabel("Total Reward")
     plt.title("DQN Test Reward History")
     plt.savefig("./results_dynamic/dqn_test_reward_history_3.png")
+    plt.close()
+
+    plt.figure(figsize=(10,6))
+    plt.plot(losses)
+    plt.xlabel("Step")
+    plt.ylabel("Loss")
+    plt.title("DQN Loss History")
+    plt.savefig("./results_dynamic/dqn_loss_history_3.png")
     plt.close()

@@ -44,7 +44,7 @@ def get_action(obs):
         return int(np.argmax(q_table[obs]))
     else:
         return random.choice(range(6))
-'''
+
 # # DQN
 # def get_action(obs):
 #     """
@@ -182,7 +182,7 @@ from training.DQN_LargeState import QNet  # assuming you have defined QNet as yo
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Load the trained Q-network.
-global_net = QNet(input_dim=27, hidden_dim=128, num_actions=6).to(device)
+global_net = QNet(input_dim=26, hidden_dim=128, num_actions=6).to(device)
 global_net.load_state_dict(torch.load("./results_dynamic/dqn_policy_net_3.pt", map_location=device))
 global_net.eval()
 
@@ -210,4 +210,3 @@ def get_action(obs):
     global_state_recorder_enhanced.update(obs, action)
     
     return action
-'''
