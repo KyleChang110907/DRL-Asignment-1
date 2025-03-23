@@ -27,24 +27,24 @@ import self_defined_state
 #         return random.choice(range(6))
 # #     # You can submit this random agent to evaluate the performance of a purely random strategy.
 
-# def get_action(obs):
-#     """
-#     Given an observation, load the Q-table from file and return the action
-#     with the highest Q-value. If the observation is not found, fallback to a random action.
-#     """
-#     try:
-#         with open("./results/q_table.pkl", "rb") as f:
-#             q_table = pickle.load(f)
-#     except FileNotFoundError:
-#         # If the Q-table hasn't been saved yet, use a random action.
-#         return random.choice(range(6))
+def get_action(obs):
+    """
+    Given an observation, load the Q-table from file and return the action
+    with the highest Q-value. If the observation is not found, fallback to a random action.
+    """
+    try:
+        with open("./results/q_table.pkl", "rb") as f:
+            q_table = pickle.load(f)
+    except FileNotFoundError:
+        # If the Q-table hasn't been saved yet, use a random action.
+        return random.choice(range(6))
     
-#     # Check if the observation exists in the Q-table
-#     if obs in q_table:
-#         return int(np.argmax(q_table[obs]))
-#     else:
-#         return random.choice(range(6))
-
+    # Check if the observation exists in the Q-table
+    if obs in q_table:
+        return int(np.argmax(q_table[obs]))
+    else:
+        return random.choice(range(6))
+'''
 # # DQN
 # def get_action(obs):
 #     """
@@ -177,12 +177,13 @@ def get_action(obs):
 import torch
 import torch.nn.functional as F
 from self_defined_state import global_state_recorder_large  # global instance of your state recorder
+from self_defined_state import global_state_recorder_enhanced  
 from training.DQN_LargeState import QNet  # assuming you have defined QNet as your DQN network
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Load the trained Q-network.
-global_net = QNet(input_dim=17, hidden_dim=128, num_actions=6).to(device)
-global_net.load_state_dict(torch.load("./results_dynamic/dqn_policy_net.pt", map_location=device))
+global_net = QNet(input_dim=27, hidden_dim=128, num_actions=6).to(device)
+global_net.load_state_dict(torch.load("./results_dynamic/dqn_policy_net_3.pt", map_location=device))
 global_net.eval()
 
 def get_action(obs):
@@ -192,8 +193,9 @@ def get_action(obs):
     The state recorder is updated with the chosen action.
     """
     # Get the state representation (an 18-dimensional vector) from the state recorder.
-    state = global_state_recorder_large.get_state(obs)
+    state = global_state_recorder_enhanced.get_state(obs)
     
+    print('state:',state)
     # Convert the state to a tensor.
     state_tensor = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
     
@@ -203,8 +205,9 @@ def get_action(obs):
     
     # Choose the action with the highest Q-value.
     action = int(torch.argmax(q_values, dim=1).item())
-    
+    print('action:',action)
     # Update the state recorder with the observation and chosen action.
-    global_state_recorder_large.update(obs, action)
+    global_state_recorder_enhanced.update(obs, action)
     
     return action
+'''

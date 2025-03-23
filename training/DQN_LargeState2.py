@@ -9,9 +9,9 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 
 from environment.dynamic_env import DynamicTaxiEnv
-from self_defined_state import StateRecorder_Enhanced
+from self_defined_state import StateRecorder_Differences  # Your class-based state recorder
 
-sav_dir = "./results_dynamic/dqn_policy_net_3.pt"
+sav_dir = "./results_dynamic/dqn_policy_net_3_2.pt"
 # --- Hyperparameters ---
 NUM_EPISODES = 20000        # Total episodes for training
 MAX_STEPS = 1000              # Maximum steps per episode
@@ -27,7 +27,7 @@ TARGET_UPDATE_FREQ = 1000   # Steps between target network updates
 
 # --- Q-Network Definition ---
 class QNet(nn.Module):
-    def __init__(self, input_dim=27, hidden_dim=64, num_actions=6):
+    def __init__(self, input_dim=15, hidden_dim=64, num_actions=6):
         super(QNet, self).__init__()
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, num_actions)
@@ -58,62 +58,42 @@ class ReplayBuffer:
 # --- Reward Shaping Function ---
 def potential(state):
     """
-    Compute a potential value from the enhanced state.
+    Compute a potential value from the difference-based state.
     
-    The state vector is assumed to have 27 dimensions:
-      - Indices 0-1: Taxi's normalized position.
-      - Indices 2-9: Station positions (4 stations, each 2 dims).
-      - Indices 10-13: Passenger one-hot indicator (which station is passenger).
-      - Indices 14-17: Destination one-hot indicator (which station is destination).
-      - Index 18: Passenger on taxi flag (1 if onboard, 0 otherwise).
-      - Remaining indices: fuel, last action, obstacles, raw look flags.
+    The state vector is assumed to have 15 dimensions:
+      - Indices 0-2: Passenger differences:
+          [ (taxi_row - passenger_row)/10, (taxi_col - passenger_col)/10, passenger_known ]
+      - Indices 3-5: Destination differences:
+          [ (taxi_row - destination_row)/10, (taxi_col - destination_col)/10, destination_known ]
+      - Indices 6-8: Passenger-to-Destination differences (not used here).
+      - Index 9: Passenger on taxi flag (1 if onboard, 0 otherwise).
+      - Index 10: Last action normalized.
+      - Indices 11-14: Obstacle indicators.
     
-    If the passenger is not onboard and a passenger station is known, the potential is defined as 
-    the negative Manhattan distance from the taxi to the passenger's station multiplied by 15.
-    If the passenger is onboard and a destination is known, the potential is defined similarly.
+    If the passenger is not onboard and is known, the potential is defined as 
+    the negative Manhattan distance (scaled by 15) from the taxi to the passenger.
+    If the passenger is onboard and the destination is known, the potential is defined similarly.
     If the corresponding indicator is not set, the potential is 0.
     """
-    # Taxi's normalized absolute position.
-    taxi_r = state[0]
-    taxi_c = state[1]
-    
-    # Station positions: indices 2-9.
-    stations = [
-        (state[2], state[3]),
-        (state[4], state[5]),
-        (state[6], state[7]),
-        (state[8], state[9])
-    ]
-    
-    # Passenger one-hot indicator: indices 10-13.
-    passenger_onehot = list(state[10:14])
-    # Destination one-hot indicator: indices 14-17.
-    destination_onehot = list(state[14:18])
-    
-    # Passenger on taxi flag: index 18.
-    passenger_on = state[18]
-    
-    scale = 15.0  # Scaling factor to amplify the Manhattan distance
+    scale = 15.0
+    passenger_on = state[9]  # Passenger on taxi flag.
     
     if passenger_on < 0.5:
-        # Use passenger station as target.
-        if sum(passenger_onehot) < 0.5:
-            # If no passenger station is known, return 0 potential.
+        # Passenger not onboard: target is the passenger.
+        passenger_known = state[2]
+        if passenger_known < 0.5:
             return 0.0
-        # Get the index corresponding to the maximum one-hot value.
-        passenger_index = passenger_onehot.index(max(passenger_onehot))
-        target_r, target_c = stations[passenger_index]
-        # Manhattan distance in normalized space.
-        manhattan = abs(taxi_r - target_r) + abs(taxi_c - target_c)
+        # Differences at indices 0 and 1 are (taxi - passenger)/10; so actual Manhattan distance is:
+        manhattan = 10 * (abs(state[0]) + abs(state[1]))
         return -scale * manhattan
     else:
-        # Passenger is onboard; use destination station.
-        if sum(destination_onehot) < 0.5:
+        # Passenger is onboard: target is the destination.
+        destination_known = state[5]
+        if destination_known < 0.5:
             return 0.0
-        destination_index = destination_onehot.index(max(destination_onehot))
-        target_r, target_c = stations[destination_index]
-        manhattan = abs(taxi_r - target_r) + abs(taxi_c - target_c)
+        manhattan = 10 * (abs(state[3]) + abs(state[4]))
         return -scale * manhattan
+
 
 # --- Epsilon Schedule ---
 def get_epsilon(step):
@@ -123,8 +103,8 @@ def get_epsilon(step):
 # --- DQN Training Function ---
 def dqn_train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    policy_net = QNet(input_dim=26, hidden_dim=128, num_actions=6).to(device)
-    target_net = QNet(input_dim=26, hidden_dim=128, num_actions=6).to(device)
+    policy_net = QNet(input_dim=15, hidden_dim=64, num_actions=6).to(device)
+    target_net = QNet(input_dim=15, hidden_dim=64, num_actions=6).to(device)
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
     
@@ -139,7 +119,7 @@ def dqn_train():
     for ep in range(NUM_EPISODES):
         # Initialize environment and recorder for each episode.
         env = DynamicTaxiEnv(grid_size_min=5, grid_size_max=10, fuel_limit=MAX_FUEL, obstacle_prob=0.10)
-        recorder = StateRecorder_Enhanced(MAX_FUEL)
+        recorder = StateRecorder_Differences(MAX_FUEL)
         obs, _ = env.reset()
         recorder.reset()
         state = recorder.get_state(obs)  # 17-dimensional state
@@ -240,7 +220,7 @@ def evaluate_dqn(policy_net, device, num_episodes=10):
     rewards = []
     for _ in range(num_episodes):
         env = DynamicTaxiEnv(grid_size_min=5, grid_size_max=10, fuel_limit=MAX_FUEL, obstacle_prob=0.10)
-        recorder = StateRecorder_Enhanced(MAX_FUEL)
+        recorder = StateRecorder_Differences(MAX_FUEL)
         obs, _ = env.reset()
         recorder.reset()
         state = recorder.get_state(obs)
@@ -264,14 +244,14 @@ if __name__ == "__main__":
     policy_net, rewards, test_rewards = dqn_train()
     os.makedirs("./results_dynamic", exist_ok=True)
     torch.save(policy_net.state_dict(), sav_dir )
-    np.save("./results_dynamic/dqn_rewards_history_3.npy", np.array(rewards))
+    np.save("./results_dynamic/dqn_rewards_history_3_2.npy", np.array(rewards))
     
     plt.figure(figsize=(10,6))
     plt.plot(rewards)
     plt.xlabel("Episode")
     plt.ylabel("Total Reward")
     plt.title("DQN Reward History")
-    plt.savefig("./results_dynamic/dqn_reward_history_3.png")
+    plt.savefig("./results_dynamic/dqn_reward_history_3_2.png")
     plt.close()
     
     plt.figure(figsize=(10,6))
@@ -280,5 +260,5 @@ if __name__ == "__main__":
     plt.xlabel("Episode")
     plt.ylabel("Total Reward")
     plt.title("DQN Test Reward History")
-    plt.savefig("./results_dynamic/dqn_test_reward_history_3.png")
+    plt.savefig("./results_dynamic/dqn_test_reward_history_3_2.png")
     plt.close()
